@@ -1,6 +1,11 @@
 #include <Python.h>
 #include <structmember.h>
 
+/* lua headers */
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+
 /* Exception type, used for all errors that can occur in this module. */
 static PyObject *LuaBoxError;
 
@@ -8,21 +13,45 @@ static PyObject *LuaBoxError;
 typedef struct {
 	PyObject_HEAD
 	size_t lua_max_mem;
+	size_t lua_current_mem;
+	lua_State *L;
 } Sandbox;
+
+/* lua allocation function that enforces memory limit */
+static void *lua_sandbox_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+	Sandbox *box = (Sandbox*) ud;
+	void *nptr;
+
+	size_t newmem_size = nsize-osize;
+//	printf("current limit: %lu\n", box->lua_max_mem);
+	if (nsize == 0) {
+		/* a free is always allowed */
+		free(ptr);
+		nptr = NULL;
+	} else {
+		/* check if we are allowed to consume that much memory */
+		if (0 != box->lua_max_mem && box->lua_max_mem < box->lua_current_mem+newmem_size) {
+			/* too much memory used! */
+//			printf("Memory denied! Would-be size: %ld\n", box->lua_current_mem+newmem_size);
+//
+			return NULL;
+		} else {
+			/* all good, allocate */
+			nptr = realloc(ptr, nsize);
+		}
+	}
+
+	/* update memory count */
+	box->lua_current_mem += newmem_size;
+//	printf("memory usage now: %lu\n", box->lua_current_mem);
+	return nptr;
+}
 
 /* destructor */
 static void Sandbox_dealloc(Sandbox *self) {
+	if (self->L) lua_close(self->L);
+	//else printf("No freeing, no interpreter!\n");
 	self->ob_type->tp_free((PyObject*)self);
-}
-
-/* new function */
-static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-	Sandbox *self;
-
-	self = (Sandbox*) type->tp_alloc(type, 0);
-
-
-	return (PyObject*)self;
 }
 
 /* memory_limit (lua_max_mem) setter */
@@ -47,16 +76,35 @@ static int Sandbox_setmemory_limit(Sandbox *self, PyObject *value, void *closure
 	return 0;
 }
 
+/* new function */
+static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+	Sandbox *self = (Sandbox*) type->tp_alloc(type, 0);
+
+	if(self) {
+		PyObject *memory_limit;
+		static char *kwlist[] = {"memory_limit", NULL};
+		if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &memory_limit)) return NULL;
+
+		/* memory_limit is zero if not supplied */
+		if (! memory_limit) self->lua_max_mem = 0;
+		if (-1 == Sandbox_setmemory_limit(self, memory_limit, NULL)) return NULL;
+
+		/* initialize lua_state */
+		self->L = lua_newstate(lua_sandbox_alloc, self);
+
+		if (! self->L) {
+			/* not enough memory for the interpreter itself */
+			PyErr_SetString(LuaBoxError, "Could not instantiate lua state, maybe increase the memory limit?");
+			Py_XDECREF(self);
+			return NULL;
+		}
+	}
+
+	return (PyObject*)self;
+}
+
 /* constructor */
 static int Sandbox_init(Sandbox *self, PyObject *args, PyObject *kwds) {
-	PyObject *memory_limit;
-	static char *kwlist[] = {"memory_limit", NULL};
-	if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &memory_limit)) return -1;
-
-	/* memory_limit is zero if not supplied */
-	if (! memory_limit) self->lua_max_mem = 0;
-	if (-1 == Sandbox_setmemory_limit(self, memory_limit, NULL)) return -1;
-
 	return 0;
 }
 
