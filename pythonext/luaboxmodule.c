@@ -7,12 +7,12 @@ static PyObject *LuaBoxError;
 /* the sandbox type */
 typedef struct {
 	PyObject_HEAD
-	PyObject *maxmem;
+	PyObject *memory_limit;
 } luabox_SandboxObject;
 
 /* destructor */
 static void luabox_Sandbox_dealloc(luabox_SandboxObject *self) {
-	Py_XDECREF(self->maxmem);
+	Py_XDECREF(self->memory_limit);
 	self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -22,8 +22,8 @@ static PyObject* luabox_Sandbox_new(PyTypeObject *type, PyObject *args, PyObject
 
 	self = (luabox_SandboxObject*) type->tp_alloc(type, 0);
 	if (self) {
-		self->maxmem = PyString_FromString("foo");
-		if (! self->maxmem) {
+		self->memory_limit = PyString_FromString("foo");
+		if (! self->memory_limit) {
 			Py_XDECREF(self);
 			return NULL;
 		}
@@ -34,26 +34,52 @@ static PyObject* luabox_Sandbox_new(PyTypeObject *type, PyObject *args, PyObject
 
 /* constructor */
 static int luabox_Sandbox_init(luabox_SandboxObject *self, PyObject *args, PyObject *kwds) {
-	PyObject *maxmem = 0, *tmp = 0;
-	static char *kwlist[] = {"maxmem", NULL};
-	if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &maxmem)) return -1;
+	PyObject *memory_limit = 0, *tmp = 0;
+	static char *kwlist[] = {"memory_limit", NULL};
+	if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &memory_limit)) return -1;
 
-	/* maxmem is zero if not supplied */
-	if (! maxmem) self->maxmem = Py_BuildValue("i", 0);
+	/* memory_limit is zero if not supplied */
+	if (! memory_limit) self->memory_limit = Py_BuildValue("i", 0);
 	else {
-		tmp = self->maxmem;
-		Py_XINCREF(maxmem);
-		self->maxmem = maxmem;
+		tmp = self->memory_limit;
+		Py_XINCREF(memory_limit);
+		self->memory_limit = memory_limit;
 		Py_XDECREF(tmp);
 	}
 
 	return 0;
 }
 
+static PyObject *luabox_Sandbox_getmemory_limit(luabox_SandboxObject *self, void *closure) {
+	Py_INCREF(self->memory_limit);
+	return self->memory_limit;
+}
+
+static int luabox_Sandbox_setmemory_limit(luabox_SandboxObject *self, PyObject *value, void *closure) {
+	if (! value) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete memory limit.");
+		return -1;
+	}
+
+	if (! PyInt_Check(value)) {
+		PyErr_SetString(PyExc_TypeError, "Memory limit must be an integer.");
+		return -1;
+	}
+
+	Py_DECREF(self->memory_limit);
+	Py_INCREF(value);
+	self->memory_limit = value;
+
+	return 0;
+}
+
+static PyGetSetDef luabox_Sandbox_getseters[] = {
+	{"memory_limit", (getter)luabox_Sandbox_getmemory_limit, (setter)luabox_Sandbox_setmemory_limit, "maximum allowed script memory usage (in bytes)", NULL},
+	{NULL}
+};
+
 /* class member definition */
 static PyMemberDef luabox_Sandbox_members[] = {
-	{"maxmem", T_OBJECT_EX, offsetof(luabox_SandboxObject, maxmem), 0,
-	 "maxium memory in bytes this lua instance maybe consume"},
 	{NULL}
 };
 
@@ -92,7 +118,7 @@ static PyTypeObject luabox_SandboxType = {
 	0,		                            /* tp_iternext */
 	luabox_Sandbox_methods,             /* tp_methods */
 	luabox_Sandbox_members,             /* tp_members */
-	0,                                  /* tp_getset */
+	luabox_Sandbox_getseters,           /* tp_getset */
 	0,                                  /* tp_base */
 	0,                                  /* tp_dict */
 	0,                                  /* tp_descr_get */
