@@ -8,30 +8,30 @@ static PyObject *LuaBoxError;
 typedef struct {
 	PyObject_HEAD
 	size_t lua_max_mem;
-} luabox_SandboxObject;
+} Sandbox;
 
 /* destructor */
-static void luabox_Sandbox_dealloc(luabox_SandboxObject *self) {
+static void Sandbox_dealloc(Sandbox *self) {
 	self->ob_type->tp_free((PyObject*)self);
 }
 
 /* new function */
-static PyObject* luabox_Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-	luabox_SandboxObject *self;
+static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+	Sandbox *self;
 
-	self = (luabox_SandboxObject*) type->tp_alloc(type, 0);
+	self = (Sandbox*) type->tp_alloc(type, 0);
 
 
 	return (PyObject*)self;
 }
 
 /* memory_limit (lua_max_mem) setter */
-static PyObject *luabox_Sandbox_getmemory_limit(luabox_SandboxObject *self, void *closure) {
+static PyObject *Sandbox_getmemory_limit(Sandbox *self, void *closure) {
 	return Py_BuildValue("K", self->lua_max_mem);
 }
 
 /* memory_limit (lua_max_mem) getter */
-static int luabox_Sandbox_setmemory_limit(luabox_SandboxObject *self, PyObject *value, void *closure) {
+static int Sandbox_setmemory_limit(Sandbox *self, PyObject *value, void *closure) {
 	if (! value) {
 		PyErr_SetString(PyExc_TypeError, "Cannot delete memory limit.");
 		return -1;
@@ -48,39 +48,39 @@ static int luabox_Sandbox_setmemory_limit(luabox_SandboxObject *self, PyObject *
 }
 
 /* constructor */
-static int luabox_Sandbox_init(luabox_SandboxObject *self, PyObject *args, PyObject *kwds) {
+static int Sandbox_init(Sandbox *self, PyObject *args, PyObject *kwds) {
 	PyObject *memory_limit;
 	static char *kwlist[] = {"memory_limit", NULL};
 	if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &memory_limit)) return -1;
 
 	/* memory_limit is zero if not supplied */
 	if (! memory_limit) self->lua_max_mem = 0;
-	if (-1 == luabox_Sandbox_setmemory_limit(self, memory_limit, NULL)) return -1;
+	if (-1 == Sandbox_setmemory_limit(self, memory_limit, NULL)) return -1;
 
 	return 0;
 }
 
-static PyGetSetDef luabox_Sandbox_getseters[] = {
-	{"memory_limit", (getter)luabox_Sandbox_getmemory_limit, (setter)luabox_Sandbox_setmemory_limit, "maximum allowed script memory usage (in bytes)", NULL},
+static PyGetSetDef Sandbox_getseters[] = {
+	{"memory_limit", (getter)Sandbox_getmemory_limit, (setter)Sandbox_setmemory_limit, "maximum allowed script memory usage (in bytes)", NULL},
 	{NULL}
 };
 
 /* class member definition */
-static PyMemberDef luabox_Sandbox_members[] = {
+static PyMemberDef Sandbox_members[] = {
 	{NULL}
 };
 
-static PyMethodDef luabox_Sandbox_methods[] = {
+static PyMethodDef Sandbox_methods[] = {
 	{NULL}
 };
 
-static PyTypeObject luabox_SandboxType = {
+static PyTypeObject SandboxType = {
 	PyObject_HEAD_INIT(NULL)
 	0,                                  /*ob_size*/
 	"luabox.Sandbox",                   /*tp_name*/
-	sizeof(luabox_SandboxObject),       /*tp_basicsize*/
+	sizeof(Sandbox),                    /*tp_basicsize*/
 	0,                                  /*tp_itemsize*/
-	(destructor)luabox_Sandbox_dealloc, /*tp_dealloc*/
+	(destructor)Sandbox_dealloc,        /*tp_dealloc*/
 	0,                                  /*tp_print*/
 	0,                                  /*tp_getattr*/
 	0,                                  /*tp_setattr*/
@@ -103,17 +103,17 @@ static PyTypeObject luabox_SandboxType = {
 	0,		                            /* tp_weaklistoffset */
 	0,		                            /* tp_iter */
 	0,		                            /* tp_iternext */
-	luabox_Sandbox_methods,             /* tp_methods */
-	luabox_Sandbox_members,             /* tp_members */
-	luabox_Sandbox_getseters,           /* tp_getset */
+	Sandbox_methods,                    /* tp_methods */
+	Sandbox_members,                    /* tp_members */
+	Sandbox_getseters,                  /* tp_getset */
 	0,                                  /* tp_base */
 	0,                                  /* tp_dict */
 	0,                                  /* tp_descr_get */
 	0,                                  /* tp_descr_set */
 	0,                                  /* tp_dictoffset */
-	(initproc)luabox_Sandbox_init,      /* tp_init */
+	(initproc)Sandbox_init,             /* tp_init */
 	0,                                  /* tp_alloc */
-	luabox_Sandbox_new,                 /* tp_new */
+	Sandbox_new,                        /* tp_new */
 };
 
 /* example function, needs to be removed at some point */
@@ -150,9 +150,9 @@ PyMODINIT_FUNC initluabox(void) {
 	PyModule_AddObject(m, "error", LuaBoxError);
 
 	/* add sandbox type */
-	luabox_SandboxType.tp_new = PyType_GenericNew; /* could be done in definition, but this works on more compilers! */
-	if(PyType_Ready(&luabox_SandboxType) < 0) return;
+	SandboxType.tp_new = PyType_GenericNew; /* could be done in definition, but this works on more compilers! */
+	if(PyType_Ready(&SandboxType) < 0) return;
 
-	Py_XINCREF(&luabox_SandboxType);
-	PyModule_AddObject(m, "Sandbox", (PyObject*) &luabox_SandboxType);
+	Py_XINCREF(&SandboxType);
+	PyModule_AddObject(m, "Sandbox", (PyObject*) &SandboxType);
 }
