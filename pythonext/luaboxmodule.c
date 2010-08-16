@@ -116,32 +116,11 @@ static PyTypeObject SandboxType = {
 	Sandbox_new,                        /* tp_new */
 };
 
-/* example function, needs to be removed at some point */
-static PyObject *luabox_hello(PyObject *self, PyObject *args) {
-	const char *name;
-
-	if (!PyArg_ParseTuple(args, "s", &name))
-		return NULL;
-
-	printf("Hello, %s!\n", name);
-
-	PyErr_SetString(LuaBoxError, "LOL, error!");
-	return NULL;
-
-	return Py_BuildValue("i", 99);
-}
-
-/* metadata about methods */
-PyMethodDef LuaBoxMethods[] = {
-	{"hello", luabox_hello, METH_VARARGS, "Say hello!"},
-	{NULL, NULL, 0, NULL},
-};
-
 /* module initialization */
 PyMODINIT_FUNC initluabox(void) {
 	PyObject *m;
 
-	m = Py_InitModule("luabox", LuaBoxMethods);
+	m = Py_InitModule("luabox", NULL);
 	if (m == NULL) return;
 
 	/* set up exception type */
