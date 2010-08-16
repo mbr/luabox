@@ -7,12 +7,11 @@ static PyObject *LuaBoxError;
 /* the sandbox type */
 typedef struct {
 	PyObject_HEAD
-	PyObject *memory_limit;
+	size_t lua_max_mem;
 } luabox_SandboxObject;
 
 /* destructor */
 static void luabox_Sandbox_dealloc(luabox_SandboxObject *self) {
-	Py_XDECREF(self->memory_limit);
 	self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -21,40 +20,17 @@ static PyObject* luabox_Sandbox_new(PyTypeObject *type, PyObject *args, PyObject
 	luabox_SandboxObject *self;
 
 	self = (luabox_SandboxObject*) type->tp_alloc(type, 0);
-	if (self) {
-		self->memory_limit = PyString_FromString("foo");
-		if (! self->memory_limit) {
-			Py_XDECREF(self);
-			return NULL;
-		}
-	}
+
 
 	return (PyObject*)self;
 }
 
-/* constructor */
-static int luabox_Sandbox_init(luabox_SandboxObject *self, PyObject *args, PyObject *kwds) {
-	PyObject *memory_limit = 0, *tmp = 0;
-	static char *kwlist[] = {"memory_limit", NULL};
-	if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &memory_limit)) return -1;
-
-	/* memory_limit is zero if not supplied */
-	if (! memory_limit) self->memory_limit = Py_BuildValue("i", 0);
-	else {
-		tmp = self->memory_limit;
-		Py_XINCREF(memory_limit);
-		self->memory_limit = memory_limit;
-		Py_XDECREF(tmp);
-	}
-
-	return 0;
-}
-
+/* memory_limit (lua_max_mem) setter */
 static PyObject *luabox_Sandbox_getmemory_limit(luabox_SandboxObject *self, void *closure) {
-	Py_INCREF(self->memory_limit);
-	return self->memory_limit;
+	return Py_BuildValue("K", self->lua_max_mem);
 }
 
+/* memory_limit (lua_max_mem) getter */
 static int luabox_Sandbox_setmemory_limit(luabox_SandboxObject *self, PyObject *value, void *closure) {
 	if (! value) {
 		PyErr_SetString(PyExc_TypeError, "Cannot delete memory limit.");
@@ -66,9 +42,20 @@ static int luabox_Sandbox_setmemory_limit(luabox_SandboxObject *self, PyObject *
 		return -1;
 	}
 
-	Py_DECREF(self->memory_limit);
-	Py_INCREF(value);
-	self->memory_limit = value;
+	self->lua_max_mem = PyInt_AsSsize_t(value);
+
+	return 0;
+}
+
+/* constructor */
+static int luabox_Sandbox_init(luabox_SandboxObject *self, PyObject *args, PyObject *kwds) {
+	PyObject *memory_limit;
+	static char *kwlist[] = {"memory_limit", NULL};
+	if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &memory_limit)) return -1;
+
+	/* memory_limit is zero if not supplied */
+	if (! memory_limit) self->lua_max_mem = 0;
+	if (-1 == luabox_Sandbox_setmemory_limit(self, memory_limit, NULL)) return -1;
 
 	return 0;
 }
