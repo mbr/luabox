@@ -123,6 +123,24 @@ static int Sandbox_init(Sandbox *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
+static PyObject* Sandbox_pop(PyObject *_self, PyObject *args) {
+	Sandbox *self = (Sandbox*) _self;
+
+	if (0 == lua_gettop(self->L)) {
+		PyErr_SetString(PyExc_IndexError, "Lua stack is empty.");
+		return NULL;
+	}
+
+	if (! lua_isstring(self->L, -1)) {
+		PyErr_SetString(PyExc_TypeError, "Top element of stack is not a string or string-convertable.");
+		return NULL;
+	}
+
+	PyObject* rval = Py_BuildValue("s", lua_tostring(self->L, -1));
+	lua_pop(self->L, 1);
+	return rval;
+}
+
 static PyGetSetDef Sandbox_getseters[] = {
 	{"memory_limit", (getter)Sandbox_getmemory_limit, (setter)Sandbox_setmemory_limit, "maximum allowed script memory usage (in bytes)", NULL},
 	{NULL}
@@ -134,6 +152,7 @@ static PyMemberDef Sandbox_members[] = {
 };
 
 static PyMethodDef Sandbox_methods[] = {
+	{"pop", Sandbox_pop, METH_NOARGS, "pop and return"},
 	{NULL}
 };
 
