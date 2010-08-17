@@ -203,6 +203,37 @@ static PyObject* Sandbox_loadfile(Sandbox *self, PyObject *args, PyObject *kwds)
 	Py_RETURN_NONE;
 }
 
+static PyObject* Sandbox_pcall(Sandbox *self, PyObject *args, PyObject *kwds) {
+	static char *kwlist[] = {"nargs", "nresults", "errfunc", NULL};
+	int nargs = 0, nresults = 0, errfunc = 0;
+	if (! PyArg_ParseTupleAndKeywords(args, kwds, "|iii", kwlist, &nargs, &nresults, &errfunc)) {
+		PyErr_SetString(PyExc_Exception, "Error parsing arguments.");
+		return NULL;
+	}
+
+	switch(lua_pcall(self->L, nargs, nresults, errfunc)) {
+		case 0: break;
+
+		case LUA_ERRRUN:
+			PyErr_SetString(Exc_RuntimeError, luabox_exception_message(self));
+			return NULL;
+
+		case LUA_ERRMEM:
+			PyErr_SetString(Exc_OutOfMemory, luabox_exception_message(self));
+			return NULL;
+
+		case LUA_ERRERR:
+			PyErr_SetString(Exc_ErrorError, luabox_exception_message(self));
+			return NULL;
+
+		default:
+			PyErr_SetString(Exc_LuaBoxException, luabox_exception_message(self));
+			return NULL;
+	}
+
+	Py_RETURN_NONE;
+}
+
 static PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
 	if (0 == lua_gettop(self->L)) {
 		PyErr_SetString(PyExc_IndexError, "Lua stack is empty.");
@@ -232,6 +263,7 @@ static PyMemberDef Sandbox_members[] = {
 static PyMethodDef Sandbox_methods[] = {
 	{"loadfile", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadfile, METH_KEYWORDS, "load a file"},
 	{"loadstring", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadstring, METH_KEYWORDS, "load a string"},
+	{"pcall", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_pcall, METH_KEYWORDS, "protected function call"},
 	{"pop", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_pop, METH_NOARGS, "pop and return"},
 	{NULL}
 };
