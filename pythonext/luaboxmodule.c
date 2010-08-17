@@ -15,6 +15,8 @@
 static PyObject *Exc_LuaBoxException;
 static PyObject *Exc_OutOfMemory;
 static PyObject *Exc_SyntaxError;
+static PyObject *Exc_RuntimeError;
+static PyObject *Exc_ErrorError;
 
 /* the sandbox type */
 typedef struct {
@@ -254,12 +256,22 @@ PyMODINIT_FUNC initluabox(void) {
 	Exc_LuaBoxException = PyErr_NewException("luabox.LuaBoxException", NULL, NULL);
 	Py_XINCREF(Exc_LuaBoxException);
 	PyModule_AddObject(m, "LuaBoxException", Exc_LuaBoxException);
+
 	Exc_OutOfMemory = PyErr_NewException("luabox.OutOfMemory", Exc_LuaBoxException, NULL);
 	Py_XINCREF(Exc_OutOfMemory);
 	PyModule_AddObject(m, "OutOfMemory", Exc_OutOfMemory);
+
 	Exc_SyntaxError = PyErr_NewException("luabox.SyntaxError", Exc_LuaBoxException, NULL);
 	Py_XINCREF(Exc_SyntaxError);
 	PyModule_AddObject(m, "SyntaxError", Exc_SyntaxError);
+
+	Exc_RuntimeError = PyErr_NewException("luabox.RuntimeError", Exc_LuaBoxException, NULL);
+	Py_XINCREF(Exc_RuntimeError);
+	PyModule_AddObject(m, "RuntimeError", Exc_RuntimeError);
+
+	Exc_ErrorError = PyErr_NewException("luabox.ErrorError", Exc_LuaBoxException, NULL);
+	Py_XINCREF(Exc_ErrorError);
+	PyModule_AddObject(m, "ErrorError", Exc_ErrorError);
 
 	/* add sandbox type */
 	SandboxType.tp_new = PyType_GenericNew;
