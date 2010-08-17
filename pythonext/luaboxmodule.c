@@ -139,6 +139,35 @@ static int Sandbox_init(Sandbox *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
+static PyObject* Sandbox_loadstring(Sandbox *self, PyObject *args, PyObject *kwds) {
+	const char *s;
+	static char *kwlist[] = {"s", NULL};
+
+	if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &s)) {
+		PyErr_SetString(PyExc_Exception, "Error parsing arguments.");
+		return NULL;
+	}
+
+	switch(luaL_loadstring(self->L, s)) {
+		case 0: break; /* no error */
+
+		case LUA_ERRSYNTAX:
+			/* pop error from stack */
+			PyErr_SetString(Exc_SyntaxError, luabox_exception_message(self));
+			return NULL;
+
+		case LUA_ERRMEM:
+			PyErr_SetString(Exc_OutOfMemory, luabox_exception_message(self));
+			return NULL;
+
+		default:
+			PyErr_SetString(Exc_LuaBoxException, luabox_exception_message(self));
+			return NULL;
+	}
+
+	Py_RETURN_NONE;
+}
+
 static PyObject* Sandbox_dofile(PyObject *_self, PyObject *args, PyObject *kwds) {
 	Sandbox *self = (Sandbox*) _self;
 	const char *filename;
@@ -188,6 +217,7 @@ static PyMemberDef Sandbox_members[] = {
 static PyMethodDef Sandbox_methods[] = {
 	{"dofile", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_dofile, METH_KEYWORDS, "see lua doc for details."},
 	{"pop", Sandbox_pop, METH_NOARGS, "pop and return"},
+	{"loadstring", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadstring, METH_KEYWORDS, "load a string"},
 	{NULL}
 };
 
