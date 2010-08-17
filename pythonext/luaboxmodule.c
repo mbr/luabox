@@ -22,7 +22,20 @@ typedef struct {
 	size_t lua_max_mem;
 	size_t lua_current_mem;
 	lua_State *L;
+	char *lua_error_msg;
 } Sandbox;
+
+/* update the exception message by popping the stack */
+static const char *luabox_exception_message(Sandbox *self) {
+	if (self->lua_error_msg) free(self->lua_error_msg);
+	
+	/* save a copy of the lua error message */
+	self->lua_error_msg = strdup(lua_tostring(self->L, -1));
+	if (! self->lua_error_msg) self->lua_error_msg = "An exception message should be shown here, but there was not enough memory to allocate it.";
+
+	lua_pop(self->L, -1);
+	return self->lua_error_msg;
+}
 
 static int lua_sandbox_panic(lua_State *L) {
 	printf("Panic handler called.\n");
@@ -64,7 +77,7 @@ static void *lua_sandbox_alloc(void *ud, void *ptr, size_t osize, size_t nsize) 
 /* destructor */
 static void Sandbox_dealloc(Sandbox *self) {
 	if (self->L) lua_close(self->L);
-	//else printf("No freeing, no interpreter!\n");
+	if (self->lua_error_msg) free(self->lua_error_msg);
 	self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -93,6 +106,7 @@ static int Sandbox_setmemory_limit(Sandbox *self, PyObject *value, void *closure
 /* new function */
 static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 	Sandbox *self = (Sandbox*) type->tp_alloc(type, 0);
+	self->lua_error_msg = 0;
 
 	if(self) {
 		PyObject *memory_limit;
