@@ -22,6 +22,13 @@ typedef struct {
 	lua_State *L;
 } Sandbox;
 
+static int lua_sandbox_panic(lua_State *L) {
+	printf("Panic handler called.\n");
+	printf("Error: %s\n", lua_tostring(L, -1));
+
+	return 0;
+}
+
 /* lua allocation function that enforces memory limit */
 static void *lua_sandbox_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	Sandbox *box = (Sandbox*) ud;
@@ -103,6 +110,9 @@ static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			Py_XDECREF(self);
 			return NULL;
 		}
+
+		/* set panic function */
+		lua_atpanic(self->L, lua_sandbox_panic);
 	}
 
 	return (PyObject*)self;
