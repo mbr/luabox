@@ -201,9 +201,7 @@ static PyObject* Sandbox_loadfile(Sandbox *self, PyObject *args, PyObject *kwds)
 	Py_RETURN_NONE;
 }
 
-static PyObject* Sandbox_pop(PyObject *_self, PyObject *args) {
-	Sandbox *self = (Sandbox*) _self;
-
+static PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
 	if (0 == lua_gettop(self->L)) {
 		PyErr_SetString(PyExc_IndexError, "Lua stack is empty.");
 		return NULL;
@@ -230,7 +228,7 @@ static PyMemberDef Sandbox_members[] = {
 };
 
 static PyMethodDef Sandbox_methods[] = {
-	{"pop", Sandbox_pop, METH_NOARGS, "pop and return"},
+	{"pop", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_pop, METH_NOARGS, "pop and return"},
 	{"loadfile", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadfile, METH_KEYWORDS, "load a file"},
 	{"loadstring", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadstring, METH_KEYWORDS, "load a string"},
 	{NULL}
