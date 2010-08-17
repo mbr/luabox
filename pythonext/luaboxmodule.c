@@ -123,6 +123,24 @@ static int Sandbox_init(Sandbox *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
+static PyObject* Sandbox_dofile(PyObject *_self, PyObject *args, PyObject *kwds) {
+	Sandbox *self = (Sandbox*) _self;
+	const char *filename;
+	static char *kwlist[] = {"filename", NULL};
+	if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &filename)) {
+		PyErr_SetString(PyExc_Exception, "Error parsing arguments.");
+		return NULL;
+	}
+
+	int rval;
+
+	printf("Running filename %s\n", filename);
+	rval = luaL_dofile(self->L, filename);
+	printf("Got return value: %d\n", rval);
+
+	return Py_BuildValue("I", rval);
+}
+
 static PyObject* Sandbox_pop(PyObject *_self, PyObject *args) {
 	Sandbox *self = (Sandbox*) _self;
 
@@ -152,6 +170,7 @@ static PyMemberDef Sandbox_members[] = {
 };
 
 static PyMethodDef Sandbox_methods[] = {
+	{"dofile", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_dofile, METH_KEYWORDS, "see lua doc for details."},
 	{"pop", Sandbox_pop, METH_NOARGS, "pop and return"},
 	{NULL}
 };
