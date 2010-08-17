@@ -12,7 +12,9 @@
 #define SUPPRESS_PYMCFUNCTION_WARNINGS (PyCFunction) 
 
 /* Exception type, used for all errors that can occur in this module. */
-static PyObject *LuaBoxError;
+static PyObject *Exc_LuaBoxException;
+static PyObject *Exc_OutOfMemory;
+static PyObject *Exc_SyntaxError;
 
 /* the sandbox type */
 typedef struct {
@@ -106,7 +108,7 @@ static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 		if (! self->L) {
 			/* not enough memory for the interpreter itself */
-			PyErr_SetString(LuaBoxError, "Could not instantiate lua state, maybe increase the memory limit?");
+			PyErr_SetString(Exc_OutOfMemory, "Could not instantiate lua state.");
 			Py_XDECREF(self);
 			return NULL;
 		}
@@ -191,10 +193,16 @@ PyMODINIT_FUNC initluabox(void) {
 	m = Py_InitModule("luabox", NULL);
 	if (m == NULL) return;
 
-	/* set up exception type */
-	LuaBoxError = PyErr_NewException("luabox.error", NULL, NULL);
-	Py_XINCREF(LuaBoxError);
-	PyModule_AddObject(m, "error", LuaBoxError);
+	/* set up exception types */
+	Exc_LuaBoxException = PyErr_NewException("luabox.LuaBoxException", NULL, NULL);
+	Py_XINCREF(Exc_LuaBoxException);
+	PyModule_AddObject(m, "LuaBoxException", Exc_LuaBoxException);
+	Exc_OutOfMemory = PyErr_NewException("luabox.OutOfMemory", Exc_LuaBoxException, NULL);
+	Py_XINCREF(Exc_OutOfMemory);
+	PyModule_AddObject(m, "OutOfMemory", Exc_OutOfMemory);
+	Exc_SyntaxError = PyErr_NewException("luabox.SyntaxError", Exc_LuaBoxException, NULL);
+	Py_XINCREF(Exc_SyntaxError);
+	PyModule_AddObject(m, "SyntaxError", Exc_SyntaxError);
 
 	/* add sandbox type */
 	SandboxType.tp_new = PyType_GenericNew;
