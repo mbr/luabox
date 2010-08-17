@@ -6,6 +6,11 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+/* note: the cast is wrong, as we really need a PyCFunctionWithKeywords,
+ *       however the type in PyMethodDef is still PyCFunction we would
+ *       like to suppress warnings */
+#define SUPPRESS_PYMCFUNCTION_WARNINGS (PyCFunction) 
+
 /* Exception type, used for all errors that can occur in this module. */
 static PyObject *LuaBoxError;
 
