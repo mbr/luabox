@@ -141,6 +141,10 @@ static int Sandbox_init(Sandbox *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
+static PyObject* Sandbox_gettop(Sandbox *self, PyObject *args) {
+	return Py_BuildValue("i", lua_gettop(self->L));
+}
+
 static PyObject* Sandbox_loadstring(Sandbox *self, PyObject *args, PyObject *kwds) {
 	const char *s;
 	static char *kwlist[] = {"s", NULL};
@@ -261,6 +265,7 @@ static PyMemberDef Sandbox_members[] = {
 };
 
 static PyMethodDef Sandbox_methods[] = {
+	{"gettop", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_gettop, METH_NOARGS, "get number of elements in stack"},
 	{"loadfile", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadfile, METH_KEYWORDS, "load a file"},
 	{"loadstring", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadstring, METH_KEYWORDS, "load a string"},
 	{"pcall", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_pcall, METH_KEYWORDS, "protected function call"},
