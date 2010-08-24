@@ -320,4 +320,7 @@ PyMODINIT_FUNC initluabox(void) {
 
 	Py_XINCREF(&SandboxType);
 	PyModule_AddObject(m, "Sandbox", (PyObject*) &SandboxType);
+
+	/* add some constants */
+	PyModule_AddIntConstant(m, "LUA_MULTRET", LUA_MULTRET);
 }
