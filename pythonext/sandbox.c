@@ -250,7 +250,6 @@ static PyMethodDef Sandbox_methods[] = {
 
 void SandboxType_INIT(PyTypeObject *t) {
 	/* add sandbox type */
-	t->tp_new = PyType_GenericNew;
 	t->tp_dealloc = (destructor)Sandbox_dealloc;
 	t->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
 	t->tp_doc = "Lua sandbox. Documentation sadly lacking.";
