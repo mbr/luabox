@@ -313,7 +313,7 @@ PyMODINIT_FUNC initluabox(void) {
 	/* add sandbox type */
 	SandboxType.tp_new = PyType_GenericNew;
 	SandboxType.tp_dealloc = (destructor)Sandbox_dealloc;
-	SandboxType.tp_flags = Py_TPFLAGS_DEFAULT;
+	SandboxType.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
 	SandboxType.tp_doc = "Lua sandbox. Documentation sadly lacking.";
 	SandboxType.tp_methods = Sandbox_methods;
 	SandboxType.tp_members = Sandbox_members;
