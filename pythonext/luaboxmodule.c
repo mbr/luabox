@@ -35,9 +35,12 @@ PyMODINIT_FUNC initluabox(void) {
 	PyModule_AddObject(m, "ErrorError", Exc_ErrorError);
 
 	SandboxType_INIT(&SandboxType);
+	LuaTableRefType_INIT(&LuaTableRefType);
 
 	Py_XINCREF(&SandboxType);
+	Py_XINCREF(&LuaTableRefType);
 	PyModule_AddObject(m, "Sandbox", (PyObject*) &SandboxType);
+	PyModule_AddObject(m, "LuaTableRef", (PyObject*) &LuaTableRefType);
 
 	/* add some constants */
 	PyModule_AddIntConstant(m, "LUA_MULTRET", LUA_MULTRET);

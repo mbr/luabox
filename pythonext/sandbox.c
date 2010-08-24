@@ -205,11 +205,22 @@ static PyObject* Sandbox_pcall(Sandbox *self, PyObject *args, PyObject *kwds) {
 }
 
 static PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
-	PyObject *rval = lua_to_python(self->L);
-	if (! rval) return NULL;
+	const int index = -1;
 
-	lua_pop(self->L, 1);
-	return rval;
+	PyObject *rval;
+	int t = lua_type(self->L, index);
+	switch(t) {
+		case LUA_TTABLE:
+			rval = LuaTableRef_from_stack(self);
+			return rval;
+
+		default:
+			rval = lua_to_python(self->L);
+			if (! rval) return NULL; 
+			lua_pop(self->L, 1);
+			return rval;
+	}
+
 }
 
 /* memory_limit (lua_max_mem) getter */

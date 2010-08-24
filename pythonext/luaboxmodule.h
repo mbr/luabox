@@ -32,11 +32,22 @@ typedef struct {
 	char *lua_error_msg;
 } Sandbox;
 
+typedef struct {
+	PyObject_HEAD
+	Sandbox *sandbox;
+	int ref;
+} LuaTableRef;
+
 extern PyTypeObject SandboxType;
+extern PyTypeObject LuaTableRefType;
 
 void SandboxType_INIT(PyTypeObject *t);
 
 /* from types.c */
 PyObject *lua_to_python(lua_State *L);
+
+/* from luatableref.c */
+PyObject *LuaTableRef_from_stack(Sandbox *sandbox);
+void LuaTableRefType_INIT(PyTypeObject *t);
 
 #endif /* LUABOXMODULE_H */
