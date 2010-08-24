@@ -111,13 +111,13 @@ static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	self->lua_error_msg = 0;
 
 	if(self) {
-		PyObject *memory_limit;
+		PyObject *memory_limit = 0;
 		static char *kwlist[] = {"memory_limit", NULL};
 		if(! PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &memory_limit)) return NULL;
 
 		/* memory_limit is zero if not supplied */
 		if (! memory_limit) self->lua_max_mem = 0;
-		if (-1 == Sandbox_setmemory_limit(self, memory_limit, NULL)) return NULL;
+		else if (-1 == Sandbox_setmemory_limit(self, memory_limit, NULL)) return NULL;
 
 		/* initialize lua_state */
 		self->L = lua_newstate(lua_sandbox_alloc, self);
