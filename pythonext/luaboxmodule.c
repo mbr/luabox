@@ -238,18 +238,84 @@ static PyObject* Sandbox_pcall(Sandbox *self, PyObject *args, PyObject *kwds) {
 	Py_RETURN_NONE;
 }
 
-static PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
-	if (0 == lua_gettop(self->L)) {
+/* converts the top object on the stack to a python object. does not pop it from the stack */
+static PyObject *lua_to_python(lua_State *L) {
+	const int index = -1;
+
+	if (0 == lua_gettop(L)) {
 		PyErr_SetString(PyExc_IndexError, "Lua stack is empty.");
 		return NULL;
 	}
 
-	if (! lua_isstring(self->L, -1)) {
-		PyErr_SetString(PyExc_TypeError, "Top element of stack is not a string or string-convertable.");
-		return NULL;
-	}
+	int t = lua_type(L, index);
+	PyObject *d;
+	switch(t) {
+		case LUA_TNIL:
+			Py_RETURN_NONE;
 
-	PyObject* rval = Py_BuildValue("s", lua_tostring(self->L, -1));
+		case LUA_TNUMBER:
+			/* note: code assumes lua_Number is double */
+			return Py_BuildValue("d", lua_tonumber(L, index));
+
+		case LUA_TBOOLEAN:
+			if (lua_toboolean(L, index)) Py_RETURN_TRUE;
+			else Py_RETURN_FALSE;
+
+		case LUA_TTABLE:
+			/* create new python dictionary */
+			d = PyDict_New();
+
+			/* create absolute index */
+			int tbl = index;
+			if (tbl < 0) tbl += lua_gettop(L)+1;
+
+			/* push nil (first index).
+			 * stack: t+1 nil
+			 *        t table */
+			lua_pushnil(L);
+
+			while(0 != lua_next(L, tbl)) {
+				/* stack now:
+				 * -1: value
+				 * -2: key
+				 * ...
+				 * t: table
+				 */
+				/* value on top, now recurse. */
+				PyObject *key, *value;
+
+				/* get value and pop, leaving key */
+				value = lua_to_python(L);
+				lua_pop(L, 1);
+
+				key = lua_to_python(L);
+				/* note: if the key is a dictionary, this will blow up
+				 * as dicts are not hashable in python */
+				/* does not pop key, used for stateless iterator */
+
+				PyDict_SetItem(d, key, value);
+
+				/* decrement reference counts, only hold items in dictionary */
+				Py_DECREF(key);
+				Py_DECREF(value);
+			}
+
+			/* stack is "clean", only table left at this point */
+			return d;
+
+		case LUA_TSTRING:
+			return Py_BuildValue("s", lua_tostring(L, index));
+
+		default:
+			lua_typename(L, t);
+			return PyErr_Format(PyExc_TypeError, "Don't know how to convert lua type '%s' to appropriate Python type.", lua_typename(L, t));
+	}
+}
+
+static PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
+	PyObject *rval = lua_to_python(self->L);
+	if (! rval) return NULL;
+
 	lua_pop(self->L, 1);
 	return rval;
 }
