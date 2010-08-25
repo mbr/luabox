@@ -1,5 +1,13 @@
 #include "luaboxmodule.h"
 
+PyMappingMethods LuaTableRef_mapping = {
+	NULL,        /* mp_length */
+	NULL,        /* mp_subscript */
+	NULL         /* mp_ass_subscript */
+
+	/* methods assigned in LuaTableRefType_INIT */
+};
+
 PyTypeObject LuaTableRefType = {
 	PyObject_HEAD_INIT(NULL)
 	0,                                  /*ob_size*/
@@ -21,6 +29,32 @@ static PyObject* LuaTableRef_str(PyObject *self) {
 	return PyString_FromFormat("<LuaTableRef ref:%d>", ltr->ref);
 }
 
+static PyObject* LuaTableRef_subscript(PyObject *self, PyObject *key) {
+	LuaTableRef* ltr = (LuaTableRef*) self;
+
+	/* get table, push onto stack */
+	lua_rawgeti(ltr->sandbox->L, LUA_REGISTRYINDEX, ltr->ref);
+
+	/* convert key to lua value, put on top of stack */
+	if (! python_to_lua(ltr->sandbox->L, key)) return NULL;
+
+	/* look up key on table (this will pop the key) */
+	lua_gettable(ltr->sandbox->L, -2); // -2  table,  -1  key
+
+	/* convert retrieved value on top of stack to python value */
+	PyObject *rval = Sandbox_pop(ltr->sandbox, NULL);
+	if (NULL == rval) {
+		/* no pop occured, discard value and key */
+		lua_pop(ltr->sandbox->L, 2);
+		return NULL;
+	}
+
+	/* pop table */
+	lua_pop(ltr->sandbox->L, 1);
+
+	return rval;
+}
+
 void LuaTableRefType_INIT(PyTypeObject *t) {
 	/* add sandbox type */
 	t->tp_new = 0; // disallow constructing type instances
@@ -28,6 +62,9 @@ void LuaTableRefType_INIT(PyTypeObject *t) {
 	t->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
 	t->tp_doc = "Reference to lua table in lua sandbox.";
 	t->tp_str = LuaTableRef_str;
+
+	t->tp_as_mapping = &LuaTableRef_mapping;
+	LuaTableRef_mapping.mp_subscript = LuaTableRef_subscript;
 
 	if(PyType_Ready(t) < 0) return;
 }

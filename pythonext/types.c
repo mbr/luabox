@@ -39,7 +39,6 @@ int python_to_lua(lua_State *L, PyObject *obj) {
 		lua_pushnumber(L, (lua_Number) PyInt_AS_LONG(obj));
 	} else if (PyLong_Check(obj)) {
 		/* Long Integer */
-
 		lua_pushnumber(L, (lua_Number) PyLong_AsDouble(obj));
 
 		/* check for exception */
