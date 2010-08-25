@@ -204,7 +204,7 @@ static PyObject* Sandbox_pcall(Sandbox *self, PyObject *args, PyObject *kwds) {
 	Py_RETURN_NONE;
 }
 
-static PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
+PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
 	const int index = -1;
 
 	PyObject *rval;

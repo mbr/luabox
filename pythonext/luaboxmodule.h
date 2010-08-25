@@ -41,7 +41,9 @@ typedef struct {
 extern PyTypeObject SandboxType;
 extern PyTypeObject LuaTableRefType;
 
+/* from sandbox.c */
 void SandboxType_INIT(PyTypeObject *t);
+PyObject* Sandbox_pop(Sandbox *self, PyObject *args);
 
 /* from types.c */
 PyObject *lua_to_python(lua_State *L);
