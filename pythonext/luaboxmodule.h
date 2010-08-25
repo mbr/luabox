@@ -45,6 +45,7 @@ void SandboxType_INIT(PyTypeObject *t);
 
 /* from types.c */
 PyObject *lua_to_python(lua_State *L);
+int python_to_lua(lua_State *L, PyObject *obj);
 
 /* from luatableref.c */
 PyObject *LuaTableRef_from_stack(Sandbox *sandbox);

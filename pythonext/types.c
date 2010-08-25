@@ -30,3 +30,44 @@ PyObject *lua_to_python(lua_State *L) {
 			return PyErr_Format(PyExc_TypeError, "Don't know how to convert lua type '%s' to appropriate Python type.", lua_typename(L, t));
 	}
 }
+
+int python_to_lua(lua_State *L, PyObject *obj) {
+	if (PyInt_Check(obj)) {
+		/* Integer */
+
+		/* convert to double (lua_Number), then push */
+		lua_pushnumber(L, (lua_Number) PyInt_AS_LONG(obj));
+	} else if (PyLong_Check(obj)) {
+		/* Long Integer */
+
+		lua_pushnumber(L, (lua_Number) PyLong_AsDouble(obj));
+
+		/* check for exception */
+		if (PyErr_Occurred()) {
+			lua_pop(L, 1); // pop error value from PyLong_AsDouble (== -1.0)
+			return 0;
+		}
+	} else if (PyFloat_Check(obj)) {
+		/* Float */
+		lua_pushnumber(L, (lua_Number) PyFloat_AsDouble(obj));
+	} else if (PyBool_Check(obj)) {
+		/* Boolean */
+		if (Py_True == obj) {
+			lua_pushboolean(L, 1);
+		} else if (Py_False == obj) {
+			lua_pushboolean(L, 0);
+		} else {
+			/* this should never be reached */
+			PyErr_SetString(PyExc_TypeError, "These are not the booleans you're looking for. Seriously, wtf?");
+		}
+	} else if (PyString_Check(obj)) {
+		/* String */
+		lua_pushlstring(L, PyString_AS_STRING(obj), PyString_GET_SIZE(obj));
+	}
+	else {
+		PyErr_Format(PyExc_TypeError, "Don't know how to convert type '%s' to lua object.", obj->ob_type->tp_name);
+		return 0;
+	}
+
+	return 1;
+}
