@@ -1,6 +1,6 @@
 #include "luaboxmodule.h"
 
-/* converts the primite lua object on top of the stack to a python object. does not pop it from the stack */
+/* converts the primitive lua object on top of the stack to a python object. does not pop it from the stack */
 PyObject *lua_to_python(lua_State *L) {
 	const int index = -1;
 
