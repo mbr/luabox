@@ -24,6 +24,21 @@ static void LuaTableRef_dealloc(LuaTableRef *self) {
 	self->ob_type->tp_free((PyObject*)self);
 }
 
+static Py_ssize_t LuaTableRef_length(PyObject *self) {
+	LuaTableRef *ltr = (LuaTableRef*) self;
+
+	/* push table onto stack */
+	lua_rawgeti(ltr->sandbox->L, LUA_REGISTRYINDEX, ltr->ref);
+
+	/* get length */
+	size_t len = lua_objlen(ltr->sandbox->L, -1);
+
+	/* pop table from stack */
+	lua_pop(ltr->sandbox->L, 1);
+
+	return (Py_ssize_t) len;
+}
+
 static PyObject* LuaTableRef_str(PyObject *self) {
 	LuaTableRef* ltr = (LuaTableRef*) self;
 	return PyString_FromFormat("<LuaTableRef ref:%d>", ltr->ref);
@@ -64,6 +79,7 @@ void LuaTableRefType_INIT(PyTypeObject *t) {
 	t->tp_str = LuaTableRef_str;
 
 	t->tp_as_mapping = &LuaTableRef_mapping;
+	LuaTableRef_mapping.mp_length = LuaTableRef_length;
 	LuaTableRef_mapping.mp_subscript = LuaTableRef_subscript;
 
 	if(PyType_Ready(t) < 0) return;
