@@ -1,0 +1,1 @@
+A Python module that allows running Lua code from Python in a sandbox. Intended to execute arbitrary, possibly unsafe code submitted by users.
