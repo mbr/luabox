@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf8
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 import commands
 
 # function below from http://code.activestate.com/recipes/502261-python-distutils-pkg-config/
