@@ -11,7 +11,12 @@ def pkgconfig(*packages, **kw):
 		kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
 	return kw
 
-mod = Extension('luabox', ['luaboxmodule.c','sandbox.c','types.c','luatableref.c'], **pkgconfig('lua5.1'))
+mod = Extension('luabox',
+                ['luabox/luaboxmodule.c',
+                 'luabox/sandbox.c',
+                 'luabox/types.c',
+                 'luabox/luatableref.c'],
+                **pkgconfig('lua5.1'))
 
 setup(name = 'LuaBox',
       version = '0.1',
