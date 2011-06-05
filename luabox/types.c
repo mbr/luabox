@@ -43,7 +43,18 @@ PyObject *lua_to_python(lua_State *L) {
  * object.
  */
 int python_to_lua(lua_State *L, PyObject *obj) {
-	if (PyInt_Check(obj)) {
+	/* PyBool is a subtype of Int, so check first if it is a boolean. */
+	if (PyBool_Check(obj)) {
+		/* Boolean */
+		if (Py_True == obj) {
+			lua_pushboolean(L, 1);
+		} else if (Py_False == obj) {
+			lua_pushboolean(L, 0);
+		} else {
+			/* this should never be reached */
+			PyErr_SetString(PyExc_TypeError, "These are not the booleans you're looking for. Seriously, wtf?");
+		}
+	} else if (PyInt_Check(obj)) {
 		/* Integer */
 
 		/* convert to double (lua_Number), then push */
@@ -60,19 +71,11 @@ int python_to_lua(lua_State *L, PyObject *obj) {
 	} else if (PyFloat_Check(obj)) {
 		/* Float */
 		lua_pushnumber(L, (lua_Number) PyFloat_AsDouble(obj));
-	} else if (PyBool_Check(obj)) {
-		/* Boolean */
-		if (Py_True == obj) {
-			lua_pushboolean(L, 1);
-		} else if (Py_False == obj) {
-			lua_pushboolean(L, 0);
-		} else {
-			/* this should never be reached */
-			PyErr_SetString(PyExc_TypeError, "These are not the booleans you're looking for. Seriously, wtf?");
-		}
-	} else if (PyString_Check(obj)) {
+	} else  if (PyString_Check(obj)) {
 		/* String */
 		lua_pushlstring(L, PyString_AS_STRING(obj), PyString_GET_SIZE(obj));
+	} else if (Py_None == obj) {
+		lua_pushnil(L);
 	}
 	else {
 		PyErr_Format(PyExc_TypeError, "Don't know how to convert type '%s' to lua object.", obj->ob_type->tp_name);

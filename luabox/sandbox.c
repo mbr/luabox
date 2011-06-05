@@ -317,6 +317,31 @@ PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
 }
 
 /**
+ * Push a value on top of the lua stack.
+ *
+ * \see python_to_lua.
+ *
+ * Python signature: push(value)
+ */
+PyObject *Sandbox_push(Sandbox *self, PyObject *args, PyObject *kwds) {
+	static char *kwlist[] = {"value", NULL};
+
+	PyObject *value;
+	if (! PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &value)) {
+		PyErr_SetString(PyExc_Exception, "Error parsing arguments.");
+		return NULL;
+	}
+
+	if (! python_to_lua(self->L, value)) {
+		/* Error string is set by python_to_loa. */
+		return NULL;
+	}
+
+	/* all done */
+	Py_RETURN_NONE;
+}
+
+/**
  * Setter for memory_limit (see lua_max_mem).
  */
 static int Sandbox_setmemory_limit(Sandbox *self, PyObject *value, void *closure) {
@@ -360,6 +385,7 @@ static PyMethodDef Sandbox_methods[] = {
 	{"loadfile", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadfile, METH_KEYWORDS, "load a file"},
 	{"loadstring", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadstring, METH_KEYWORDS, "load a string"},
 	{"pcall", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_pcall, METH_KEYWORDS, "protected function call"},
+	{"push", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_push, METH_KEYWORDS, "push value on top of lua stack"},
 	{"pop", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_pop, METH_NOARGS, "pop and return"},
 	{NULL}
 };
