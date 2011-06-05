@@ -1,3 +1,14 @@
+/**
+ * Lua basic Sandbox.
+ *
+ * Contains all necessary code that implements the Sandbox class from the
+ * luabox module.
+ *
+ * The Sandbox module aims to tightly wrap a lua_State as possible. The
+ * C extension provides no syntactic sugar, which is added as Python code
+ * on a class that extends it.
+ */
+
 #include "luaboxmodule.h"
 
 PyTypeObject SandboxType = {
