@@ -100,26 +100,46 @@ static int lua_sandbox_panic(lua_State *L) {
 	return 0;
 }
 
-/**** Sandbox-METHODS ****/
+/**
+ * Deallocation method for python object.
+ */
 static void Sandbox_dealloc(Sandbox *self) {
 	if (self->L) lua_close(self->L);
 	if (self->lua_error_msg) free(self->lua_error_msg);
 	self->ob_type->tp_free((PyObject*)self);
 }
 
-/* memory_limit (lua_max_mem) setter */
+/**
+ * Getter for memory_limit (see lua_max_mem).
+ */
 static PyObject *Sandbox_getmemory_limit(Sandbox *self, void *closure) {
 	return Py_BuildValue("K", self->lua_max_mem);
 }
 
+/**
+ * Returns the index of the top element of the lua stack.
+ * \see lua_gettop.
+ *
+ * Python signature: gettop()
+ */
 static PyObject* Sandbox_gettop(Sandbox *self, PyObject *args) {
 	return Py_BuildValue("i", lua_gettop(self->L));
 }
 
+/**
+ * Init function for python object.
+ */
 static int Sandbox_init(Sandbox *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
+/**
+ * Load lua code from string.
+ *
+ * \see luaL_loadstring.
+ *
+ * Python signature: loadstring(s)
+ */
 static PyObject* Sandbox_loadstring(Sandbox *self, PyObject *args, PyObject *kwds) {
 	const char *s;
 	static char *kwlist[] = {"s", NULL};
@@ -149,6 +169,13 @@ static PyObject* Sandbox_loadstring(Sandbox *self, PyObject *args, PyObject *kwd
 	Py_RETURN_NONE;
 }
 
+/**
+ * Load lua code from file.
+ *
+ * \see luaL_loadfile.
+ *
+ * Python signature: loadfile(filename)
+ */
 static PyObject* Sandbox_loadfile(Sandbox *self, PyObject *args, PyObject *kwds) {
 	const char *filename;
 	static char *kwlist[] = {"filename", NULL};
@@ -182,6 +209,16 @@ static PyObject* Sandbox_loadfile(Sandbox *self, PyObject *args, PyObject *kwds)
 	Py_RETURN_NONE;
 }
 
+/**
+ * new-function for Python object.
+ *
+ * Creates a new lua state and sets the memory limit.
+ *
+ * \param memory_limit The initial memory limit, in bytes or 0,
+ *                     for no memory limit.
+ *
+ * Python signature: Sandbox(memory_limit=0)
+ */
 static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 	Sandbox *self = (Sandbox*) type->tp_alloc(type, 0);
 	self->lua_error_msg = 0;
@@ -212,6 +249,13 @@ static PyObject* Sandbox_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject*)self;
 }
 
+/**
+ * Protected-mode lua function call.
+ *
+ * \see lua_pcall.
+ *
+ * Python signature: pcall(nargs, nresults, errfunc)
+ */
 static PyObject* Sandbox_pcall(Sandbox *self, PyObject *args, PyObject *kwds) {
 	static char *kwlist[] = {"nargs", "nresults", "errfunc", NULL};
 	int nargs = 0, nresults = 0, errfunc = 0;
@@ -243,6 +287,16 @@ static PyObject* Sandbox_pcall(Sandbox *self, PyObject *args, PyObject *kwds) {
 	Py_RETURN_NONE;
 }
 
+/**
+ * Pop top element from the stack.
+ *
+ * Pops the top element from the lua stack and returns it converted to an
+ * appropriate Python value.
+ *
+ * \see lua_pop
+ *
+ * Python signature: pop()
+ */
 PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
 	const int index = -1;
 
@@ -262,7 +316,9 @@ PyObject* Sandbox_pop(Sandbox *self, PyObject *args) {
 
 }
 
-/* memory_limit (lua_max_mem) getter */
+/**
+ * Setter for memory_limit (see lua_max_mem).
+ */
 static int Sandbox_setmemory_limit(Sandbox *self, PyObject *value, void *closure) {
 	if (! value) {
 		PyErr_SetString(PyExc_TypeError, "Cannot delete memory limit.");
@@ -279,16 +335,26 @@ static int Sandbox_setmemory_limit(Sandbox *self, PyObject *value, void *closure
 	return 0;
 }
 
+/**
+ * Getter/Setter struct.
+ *
+ * Currently, only contains memory_limit.
+ */
 static PyGetSetDef Sandbox_getseters[] = {
 	{"memory_limit", (getter)Sandbox_getmemory_limit, (setter)Sandbox_setmemory_limit, "maximum allowed script memory usage (in bytes)", NULL},
 	{NULL}
 };
 
-/* class member definition */
+/**
+ * Sandbox attributes.
+ */
 static PyMemberDef Sandbox_members[] = {
 	{NULL}
 };
 
+/**
+ * Sandbox methods.
+ */
 static PyMethodDef Sandbox_methods[] = {
 	{"gettop", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_gettop, METH_NOARGS, "get number of elements in stack"},
 	{"loadfile", SUPPRESS_PYMCFUNCTION_WARNINGS Sandbox_loadfile, METH_KEYWORDS, "load a file"},
@@ -298,6 +364,9 @@ static PyMethodDef Sandbox_methods[] = {
 	{NULL}
 };
 
+/**
+ * INIT-function for Sandbox type.
+ */
 void SandboxType_INIT(PyTypeObject *t) {
 	/* add sandbox type */
 	t->tp_dealloc = (destructor)Sandbox_dealloc;
