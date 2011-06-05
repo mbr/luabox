@@ -1,6 +1,13 @@
+/**
+ * Conversion between lua and Python types.
+ */
 #include "luaboxmodule.h"
 
-/* converts the primitive lua object on top of the stack to a python object. does not pop it from the stack */
+/**
+ * Converts the primitive lua object on top of the stack to a python object.
+ *
+ * Does not pop it from the stack.
+ */
 PyObject *lua_to_python(lua_State *L) {
 	const int index = -1;
 
@@ -31,6 +38,9 @@ PyObject *lua_to_python(lua_State *L) {
 	}
 }
 
+/**
+ * Puts a new lua object on the stack that is a copy of the given Python object.
+ */
 int python_to_lua(lua_State *L, PyObject *obj) {
 	if (PyInt_Check(obj)) {
 		/* Integer */
