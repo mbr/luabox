@@ -39,7 +39,8 @@ PyObject *lua_to_python(lua_State *L) {
 }
 
 /**
- * Puts a new lua object on the stack that is a copy of the given Python object.
+ * Puts a new lua object on the stack that is a copy of the given Python
+ * object.
  */
 int python_to_lua(lua_State *L, PyObject *obj) {
 	if (PyInt_Check(obj)) {

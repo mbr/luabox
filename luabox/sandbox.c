@@ -7,23 +7,35 @@
  * The Sandbox module aims to tightly wrap a lua_State as possible. The
  * C extension provides no syntactic sugar, which is added as Python code
  * on a class that extends it.
+ *
+ * In addition to that, the Sandbox uses a custom malloc() implementation
+ * that allows defining bounds on how much memory the lua interpreter
+ * may allocate for a specific lua_State instance. This is configurable
+ * as the memory_limit parameter.
  */
-
 #include "luaboxmodule.h"
 
 PyTypeObject SandboxType = {
 	PyObject_HEAD_INIT(NULL)
 	0,                                  /*ob_size*/
 	"luabox.Sandbox",                   /*tp_name*/
-	sizeof(Sandbox)                    /*tp_basicsize*/
+	sizeof(Sandbox)                     /*tp_basicsize*/
 
-	/* other members initialized in SandboxType_INIT */
+	/* The other members are initialized in SandboxType_INIT */
 };
 
-/* forward declarations */
+/* Forward declarations, as we don't use a sandbox.h header file. */
 static int Sandbox_setmemory_limit(Sandbox *self, PyObject *value, void *closure);
 
-/* lua allocation function that enforces memory limit */
+/**
+ * Memory allocator for lua, that enforces a hard memory limit.
+ *
+ * \param ud "User data", a pointer to a Sandbox object. The sandbox's
+ *           `lua_max_mem` property will be used as the maximum allowed
+ *           allocated memory size in bytes.
+ *
+ * For other parameters, see the documentation of lua_Alloc.
+ */
 static void *lua_sandbox_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	Sandbox *box = (Sandbox*) ud;
 	void *nptr;
@@ -39,7 +51,7 @@ static void *lua_sandbox_alloc(void *ud, void *ptr, size_t osize, size_t nsize) 
 		if (0 != box->lua_max_mem && box->lua_max_mem < box->lua_current_mem+newmem_size) {
 			/* too much memory used! */
 //			printf("Memory denied! Would-be size: %ld\n", box->lua_current_mem+newmem_size);
-//
+
 			return NULL;
 		} else {
 			/* all good, allocate */
@@ -53,7 +65,16 @@ static void *lua_sandbox_alloc(void *ud, void *ptr, size_t osize, size_t nsize) 
 	return nptr;
 }
 
-/* update the exception message by popping the stack */
+/**
+ * Pop the stack to get an error message from lua.
+ *
+ * A string containing an error message from lua, or an error message
+ * explaining why the actual error message could not be fetched.
+ *
+ * \note The errormessage is stored in a static buffer on the 
+ *       Sandbox. Subsequent calls to this function will invalidate
+ *       the pointer from previous calls.
+ */
 static const char *luabox_exception_message(Sandbox *self) {
 	if (self->lua_error_msg) free(self->lua_error_msg);
 	
@@ -65,6 +86,13 @@ static const char *luabox_exception_message(Sandbox *self) {
 	return self->lua_error_msg;
 }
 
+/**
+ * lua panic function.
+ *
+ * Outputs the panic message to stdout.
+ *
+ * \note FIXME: this really should be handed back to python as an exception.
+ */
 static int lua_sandbox_panic(lua_State *L) {
 	printf("Panic handler called.\n");
 	printf("Error: %s\n", lua_tostring(L, -1));
